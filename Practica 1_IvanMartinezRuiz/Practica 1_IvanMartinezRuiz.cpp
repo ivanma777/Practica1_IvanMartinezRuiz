@@ -751,16 +751,36 @@ bool isConnected(const Room& room, int destination) {
 
     return false;
 }
+int countEnemies(const Level& level) {
 
+    int total = 0;
+
+    for (const Room& room : level.rooms) {
+        total += static_cast<int>(room.enemies.size());
+    }
+
+    return total;
+}
 void exploreLevel(Level& level, Player& player,
-    const Weapon& weapon) {
+    const vector<Weapon>& weapons,
+    int& equippedWeapon) 
+{
 
     int currentRoom = 0;
     bool exploring = true;
 
+   
+
     while (exploring && player.isAlive()) {
 
         system("cls");
+
+        if (countEnemies(level) == 0) {
+
+            cout << "Has derrotado a todos los enemigos!" << endl;
+
+            break;
+        }
 
         Room& room = level.rooms[currentRoom];
 
@@ -772,7 +792,7 @@ void exploreLevel(Level& level, Player& player,
             << " | Bono ataque: +" << player.getHitBonus()
             << " | Oro: " << player.getGold() << endl;
 
-        cout << "Arma: " << weapon.getName() << endl;
+        cout << "Arma: " << weapons[equippedWeapon].getName() << endl;
 
         drawRoom(room);
 
@@ -792,6 +812,7 @@ void exploreLevel(Level& level, Player& player,
         cout << "\n1. Atacar" << endl;
         cout << "2. Moverse a otra sala" << endl;
         cout << "3. Recoger oro" << endl;
+        cout << "4. Cambiar de arma" << endl;
         cout << "0. Salir" << endl;
 
         int option;
@@ -810,7 +831,7 @@ void exploreLevel(Level& level, Player& player,
             exploring = false;
         }
 
-        // ATACAR
+      
         else if (option == 1) {
 
             if (room.enemies.empty()) {
@@ -839,15 +860,15 @@ void exploreLevel(Level& level, Player& player,
 
             Enemy& enemy = *room.enemies[target - 1];
 
-            player.attack(enemy, weapon);
+            player.attack(enemy, weapons[equippedWeapon]);
 
-            // Comprobamos si ha muerto
+           
             if (enemy.getHp() <= 0) {
 
                 cout << "\nHas derrotado a "
                     << enemy.getName() << "!" << endl;
 
-                // Probabilidad de obtener tesoro
+                
                 if (randomInt(1, 100) <= enemy.getTreasure()) {
 
                     int goldFound =
@@ -874,7 +895,7 @@ void exploreLevel(Level& level, Player& player,
                 }
             }
 
-            // Los enemigos restantes responden
+            
             if (!room.enemies.empty() && player.isAlive()) {
                 enemyTurn(room, player);
             }
@@ -928,6 +949,43 @@ void exploreLevel(Level& level, Player& player,
             }
         }
 
+        else if (option == 4) {
+
+            cout << "\n=== ARMAS DISPONIBLES ===" << endl;
+
+            for (size_t i = 0; i < weapons.size(); i++) {
+
+                cout << i + 1 << ". "
+                    << weapons[i].getName()
+                    << " - " << weapons[i].getDamageDescription()
+                    << endl;
+            }
+
+            int choice;
+
+            cout << "Selecciona un arma: ";
+
+            if (cin >> choice &&
+                choice >= 1 &&
+                choice <= static_cast<int>(weapons.size())) {
+
+                equippedWeapon = choice - 1;
+
+                cout << "Has equipado "
+                    << weapons[equippedWeapon].getName() << endl;
+            }
+
+            else {
+
+                cout << "Arma no valida." << endl;
+
+                if (cin.fail()) {
+                    cin.clear();
+                    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                }
+            }
+}
+
         else {
             cout << "Opcion no valida." << endl;
         }
@@ -939,6 +997,8 @@ void exploreLevel(Level& level, Player& player,
             cin.get();
         }
     }
+
+
 
     if (!player.isAlive()) {
         cout << "\nHas sido derrotado en la mazmorra." << endl;
@@ -965,71 +1025,27 @@ void showEnemy(const Enemy& enemy) {
 
 int main() {
 
+    // Seleccion de dificultad
     Difficulty difficulty = chooseDifficulty();
 
-    cout << "\nDificultad seleccionada." << endl;
+    // Inventario inicial
+    vector<Weapon> weapons;
 
-    cout << "Numero de salas: "
-        << randomInt(getMinRooms(difficulty),
-            getMaxRooms(difficulty)) << endl;
+    weapons.emplace_back("Espada", 8);
 
-    cout << "Prueba de dado D20: " << rollDie(20) << endl;
-    cout << "\n=== PRUEBA DE ENEMIGOS ===" << endl;
+    weapons.emplace_back(
+        "Espada de fuego", 8,
+        vector<Element>{ Element::Fire }
+    );
 
-    Slime slime(1, 30, 10,
-        { Element::Fire, Element::Ice });
+    weapons.emplace_back("Arco", 6);
 
-   
+    int equippedWeapon = 0;
 
-    showEnemy(slime);
-    cout << "Elementos: "
-        << slime.getElementDescription() << endl;
-
-    cout << "\n=== GENERACION ALEATORIA ===" << endl;
-
-    EnemyFactory factory;
-
-    factory.reset();
-
-    for (int i = 0; i < 15; i++) {
-
-        unique_ptr<Enemy> enemy = factory.createRandomEnemy(1);
-
-        showEnemy(*enemy);
-    }
-
-
-    cout << "\n=== PRUEBA DE COMBATE ===" << endl;
-
+    // Creacion del jugador
     Player player;
 
-    Weapon sword("Espada", 8);
-
-    Weapon fireSword("Espada de fuego", 8,
-        { Element::Fire });
-
-    EnemyFactory combatFactory;
-
-    unique_ptr<Enemy> enemy1 =
-        combatFactory.createRandomEnemy(1);
-
-    unique_ptr<Enemy> enemy2 =
-        combatFactory.createRandomEnemy(1);
-
-    cout << "\nJugador: 100 PS" << endl;
-
-    cout << "\nPrimer enemigo:" << endl;
-    showEnemy(*enemy1);
-
-    player.attack(*enemy1, sword);
-
-    cout << "\nSegundo enemigo:" << endl;
-    showEnemy(*enemy2);
-
-    player.attack(*enemy2, fireSword);
-
-    cout << "\n=== GENERACION DE MAZMORRA ===" << endl;
-
+    // Generacion de la mazmorra
     RandomLevelBuilder builder;
 
     builder.reset();
@@ -1039,33 +1055,57 @@ int main() {
 
     Level dungeon = builder.getResult();
 
-    
-    for (const Room& room : dungeon.rooms) {
+    // Comienza la partida
+    cout << "\nMazmorra generada correctamente." << endl;
+    cout << "Numero de salas: "
+        << dungeon.rooms.size() << endl;
 
-        cout << "\n--- Sala " << room.id << " ---" << endl;
+    cout << "\nPulsa Enter para comenzar...";
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+    cin.get();
 
-        cout << "Dimensiones: "
-            << room.width << "x" << room.height << endl;
+    exploreLevel(
+        dungeon,
+        player,
+        weapons,
+        equippedWeapon
+    );
 
-        cout << "Oro: " << room.gold << endl;
+    // Resumen final
+    system("cls");
 
-        cout << "Salas conectadas: ";
+    cout << "========== FIN DE LA PARTIDA ==========" << endl;
 
-        for (int connection : room.connections) {
-            cout << connection << " ";
-        }
+    if (!player.isAlive()) {
 
-        cout << "\nEnemigos: "
-            << room.enemies.size() << endl;
-
-        for (const auto& enemy : room.enemies) {
-            showEnemy(*enemy);
-        }
+        cout << "Has sido derrotado." << endl;
     }
 
-    cout << "\n=== EXPLORACION DE LA MAZMORRA ===" << endl;
+    else if (countEnemies(dungeon) == 0) {
 
-    exploreLevel(dungeon, player, sword);
+        cout << "Has completado la mazmorra!" << endl;
+    }
+
+    else {
+
+        cout << "Has abandonado la mazmorra." << endl;
+    }
+
+    cout << "\nNivel alcanzado: "
+        << player.getLevel() << endl;
+
+    cout << "PS: "
+        << player.getHp() << "/"
+        << player.getMaxHp() << endl;
+
+    cout << "Bono al ataque: +"
+        << player.getHitBonus() << endl;
+
+    cout << "Oro recogido: "
+        << player.getGold() << endl;
+
+    cout << "Enemigos restantes: "
+        << countEnemies(dungeon) << endl;
 
     return 0;
 }
