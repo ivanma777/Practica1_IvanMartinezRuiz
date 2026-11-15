@@ -114,6 +114,11 @@ EnemyStats generateEnemyStats(int dungeonLevel) {
 }
 #pragma endregion dificultad
 
+#pragma region builder
+
+
+#pragma endregion builder
+
 #pragma region enemy y enemy creator
 
 
@@ -357,6 +362,106 @@ public:
 
 #pragma endregion enemy y enemy creator (Factory)
 
+struct Room {
+    int id = 0;
+    int width = 10;
+    int height = 6;
+    int gold = 0;
+
+    vector<int> connections;
+    vector<unique_ptr<Enemy>> enemies;
+};
+
+struct Level {
+    vector<Room> rooms;
+};
+
+
+class RandomLevelBuilder {
+private:
+    Level level;
+    EnemyFactory enemyFactory;
+
+   
+    void connect(int first, int second) {
+
+        level.rooms[first].connections.push_back(second);
+        level.rooms[second].connections.push_back(first);
+    }
+
+public:
+
+    
+    void reset() {
+        level.rooms.clear();
+        enemyFactory.reset();
+    }
+
+    
+    void buildRooms(Difficulty difficulty) {
+
+        int minRooms = getMinRooms(difficulty);
+        int maxRooms = getMaxRooms(difficulty);
+
+        int roomCount = randomInt(minRooms, maxRooms);
+
+        for (int i = 0; i < roomCount; i++) {
+
+            Room room;
+
+            room.id = i;
+            room.width = randomInt(8, 18);
+            room.height = randomInt(5, 9);
+
+            level.rooms.push_back(std::move(room));
+        }
+    }
+
+    
+    void connectRooms() {
+
+        int count = static_cast<int>(level.rooms.size());
+
+        
+        for (int i = 0; i < count - 1; i++) {
+            connect(i, i + 1);
+        }
+
+       
+        for (int i = 0; i < count; i++) {
+
+            for (int j = i + 2; j < count; j++) {
+
+                if (randomInt(1, 100) <= 25) {
+                    connect(i, j);
+                }
+            }
+        }
+    }
+
+    
+    void populateRooms(int dungeonLevel) {
+
+        for (Room& room : level.rooms) {
+
+            room.gold = randomInt(0, 15);
+
+            int enemyCount = randomInt(0, 3);
+
+            for (int i = 0; i < enemyCount; i++) {
+
+                room.enemies.push_back(
+                    enemyFactory.createRandomEnemy(dungeonLevel)
+                );
+            }
+        }
+    }
+
+    
+    Level getResult() {
+        return std::move(level);
+    }
+};
 #pragma region weapon y player
 
 class Weapon {
@@ -569,6 +674,41 @@ int main() {
     showEnemy(*enemy2);
 
     player.attack(*enemy2, fireSword);
+
+    cout << "\n=== GENERACION DE MAZMORRA ===" << endl;
+
+    RandomLevelBuilder builder;
+
+    builder.reset();
+    builder.buildRooms(difficulty);
+    builder.connectRooms();
+    builder.populateRooms(1);
+
+    Level dungeon = builder.getResult();
+
+    
+    for (const Room& room : dungeon.rooms) {
+
+        cout << "\n--- Sala " << room.id << " ---" << endl;
+
+        cout << "Dimensiones: "
+            << room.width << "x" << room.height << endl;
+
+        cout << "Oro: " << room.gold << endl;
+
+        cout << "Salas conectadas: ";
+
+        for (int connection : room.connections) {
+            cout << connection << " ";
+        }
+
+        cout << "\nEnemigos: "
+            << room.enemies.size() << endl;
+
+        for (const auto& enemy : room.enemies) {
+            showEnemy(*enemy);
+        }
+    }
 
     return 0;
 }
