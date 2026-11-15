@@ -355,7 +355,139 @@ public:
     }
 };
 
-#pragma endregion enemy y enemy creator
+#pragma endregion enemy y enemy creator (Factory)
+
+#pragma region weapon y player
+
+class Weapon {
+private:
+    string name;
+    int damageDie;
+    vector<Element> elements;
+
+public:
+    Weapon(string name, int damageDie,
+        const vector<Element>& elements = {})
+        : name(name), damageDie(damageDie),
+        elements(elements) {
+    }
+
+    string getName() const {
+        return name;
+    }
+
+    int rollDamage() const {
+
+        int total = rollDie(damageDie);
+
+       
+        for (size_t i = 0; i < elements.size(); i++) {
+            total += rollDie(4);
+        }
+
+        return total;
+    }
+
+    string getDamageDescription() const {
+
+        string result = "1d" + to_string(damageDie);
+
+        for (Element element : elements) {
+            result += " + 1d4 " + elementName(element);
+        }
+
+        return result;
+    }
+};
+
+class Player {
+private:
+    int level = 1;
+    int hp = 100;
+    int maxHp = 100;
+    int hitBonus = 0;
+    int gold = 0;
+
+public:
+
+    int getLevel() const {
+        return level;
+    }
+
+    int getHp() const {
+        return hp;
+    }
+
+    int getMaxHp() const {
+        return maxHp;
+    }
+
+    int getHitBonus() const {
+        return hitBonus;
+    }
+
+    int getGold() const {
+        return gold;
+    }
+
+    bool isAlive() const {
+        return hp > 0;
+    }
+
+    void receiveDamage(int damage) {
+        hp -= damage;
+
+        if (hp < 0) {
+            hp = 0;
+        }
+    }
+
+    void addGold(int amount) {
+        gold += amount;
+    }
+
+  
+    bool attack(Enemy& enemy, const Weapon& weapon) {
+
+        if (!enemy.getHp()) {
+            cout << "El enemigo ya ha sido derrotado." << endl;
+            return false;
+        }
+
+        int d20 = rollDie(20);
+        int result = d20 + hitBonus;
+
+        cout << "\nAtacas con " << weapon.getName() << endl;
+
+        cout << "D20: " << d20
+            << " + " << hitBonus
+            << " = " << result << endl;
+
+        cout << "AC del enemigo: " << enemy.getAC() << endl;
+
+      
+        if (result > enemy.getAC()) {
+
+            int damage = weapon.rollDamage();
+
+            enemy.takeDamage(damage);
+
+            cout << "Has acertado!" << endl;
+            cout << "Dano causado: " << damage << endl;
+
+            cout << "PS del enemigo: "
+                << enemy.getHp() << "/"
+                << enemy.getMaxHp() << endl;
+
+            return true;
+        }
+
+        cout << "Has fallado el ataque." << endl;
+
+        return false;
+    }
+};
+#pragma endregion weapon y player
 
 
 
@@ -407,6 +539,36 @@ int main() {
 
         showEnemy(*enemy);
     }
+
+
+    cout << "\n=== PRUEBA DE COMBATE ===" << endl;
+
+    Player player;
+
+    Weapon sword("Espada", 8);
+
+    Weapon fireSword("Espada de fuego", 8,
+        { Element::Fire });
+
+    EnemyFactory combatFactory;
+
+    unique_ptr<Enemy> enemy1 =
+        combatFactory.createRandomEnemy(1);
+
+    unique_ptr<Enemy> enemy2 =
+        combatFactory.createRandomEnemy(1);
+
+    cout << "\nJugador: 100 PS" << endl;
+
+    cout << "\nPrimer enemigo:" << endl;
+    showEnemy(*enemy1);
+
+    player.attack(*enemy1, sword);
+
+    cout << "\nSegundo enemigo:" << endl;
+    showEnemy(*enemy2);
+
+    player.attack(*enemy2, fireSword);
 
     return 0;
 }
