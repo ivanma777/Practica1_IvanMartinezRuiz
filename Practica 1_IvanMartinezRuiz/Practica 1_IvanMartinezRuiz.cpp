@@ -3,6 +3,7 @@
 #include <limits>
 #include <string>
 #include <vector>
+#include <memory>
 
 using namespace std;
 
@@ -17,6 +18,14 @@ enum class Element {
     Ice,
     Poison
 };
+
+struct EnemyStats {
+    int level;
+    int treasure;
+    int ac;
+};
+
+
 
 int randomInt(int minValue, int maxValue) {
     static random_device rd;
@@ -71,6 +80,21 @@ int getMaxRooms(Difficulty difficulty) {
     if (difficulty == Difficulty::Normal) return 6;
 
     return 8;
+}
+
+
+EnemyStats generateEnemyStats(int dungeonLevel) {
+
+    int level = dungeonLevel + randomInt(-1, 1);
+
+    if (level < 1) {
+        level = 1;
+    }
+
+    int treasure = randomInt(10, 60);
+    int ac = 8 + level + randomInt(0, 3);
+
+    return { level, treasure, ac };
 }
 
 class Enemy {
