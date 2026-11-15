@@ -694,6 +694,7 @@ void exploreLevel(const Level& level) {
 
     while (exploring) {
 
+        system("cls");
 
         cout << "\n========== ROGUE ==========" << endl;
 
