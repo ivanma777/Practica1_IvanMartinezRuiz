@@ -604,14 +604,7 @@ public:
 
         return false;
     }
-    void receiveDamage(int damage) {
-
-        hp -= damage;
-
-        if (hp < 0) {
-            hp = 0;
-        }
-    }
+   
     bool registerKill() {
 
         defeatedEnemies++;
@@ -663,6 +656,20 @@ void enemyTurn(Room& room, Player& player) {
                 << player.getMaxHp() << endl;
         }
     }
+}
+
+void showEnemy(const Enemy& enemy) {
+    cout << "[" << enemy.getSymbol() << "] "
+        << enemy.getName()
+        << " | Nivel: " << enemy.getLevel()
+        << " | PS: " << enemy.getHp()
+        << "/" << enemy.getMaxHp()
+        << " | Tesoro: " << enemy.getTreasure() << "%"
+        << " | AC: " << enemy.getAC()
+        << " | Dano: 1d" << enemy.getDamageDie()
+        << " + " << enemy.getExtraElementDice() << "d4"
+        << " | Ataques: " << enemy.attacksPerTurn()
+        << endl;
 }
 
 #pragma region ASCII
@@ -1009,19 +1016,6 @@ void exploreLevel(Level& level, Player& player,
 
 #pragma endregion ASCII
 
-void showEnemy(const Enemy& enemy) {
-    cout << "[" << enemy.getSymbol() << "] "
-        << enemy.getName()
-        << " | Nivel: " << enemy.getLevel()
-        << " | PS: " << enemy.getHp()
-        << "/" << enemy.getMaxHp()
-        << " | Tesoro: " << enemy.getTreasure() << "%"
-        << " | AC: " << enemy.getAC()
-        << " | Dano: 1d" << enemy.getDamageDie()
-        << " + " << enemy.getExtraElementDice() << "d4"
-        << " | Ataques: " << enemy.attacksPerTurn()
-        << endl;
-}
 
 int main() {
 
