@@ -167,6 +167,18 @@ public:
     virtual int getExtraElementDice() const {
         return 0;
     }
+
+    int rollDamage() const {
+
+        int total = rollDie(damageDie);
+
+        
+        for (int i = 0; i < getExtraElementDice(); i++) {
+            total += rollDie(4);
+        }
+
+        return total;
+    }
 };
 
 class EnemyCreator {
@@ -512,6 +524,7 @@ private:
     int maxHp = 100;
     int hitBonus = 0;
     int gold = 0;
+	int defeatedEnemies = 0;
 
 public:
 
@@ -588,6 +601,31 @@ public:
         }
 
         cout << "Has fallado el ataque." << endl;
+
+        return false;
+    }
+    void receiveDamage(int damage) {
+
+        hp -= damage;
+
+        if (hp < 0) {
+            hp = 0;
+        }
+    }
+    bool registerKill() {
+
+        defeatedEnemies++;
+
+        
+        if (defeatedEnemies % 3 == 0) {
+
+            level++;
+            hitBonus++;
+            maxHp += 10;
+            hp = maxHp;
+
+            return true;
+        }
 
         return false;
     }
