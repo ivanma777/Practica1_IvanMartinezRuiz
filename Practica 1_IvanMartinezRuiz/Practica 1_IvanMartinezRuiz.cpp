@@ -95,7 +95,12 @@ EnemyStats generateEnemyStats(int dungeonLevel) {
     int ac = 8 + level + randomInt(0, 3);
 
     return { level, treasure, ac };
+
 }
+
+
+
+
 
 class Enemy {
 private:
@@ -147,7 +152,12 @@ public:
     }
 };
 
+class EnemyCreator {
+public:
+    virtual ~EnemyCreator() = default;
 
+    virtual unique_ptr<Enemy> createEnemy(int dungeonLevel) const = 0;
+};
 
 class Slime : public Enemy {
 private:
@@ -229,6 +239,109 @@ public:
     }
 };
 
+class SlimeCreator : public EnemyCreator {
+public:
+    unique_ptr<Enemy> createEnemy(int dungeonLevel) const override {
+
+        EnemyStats stats = generateEnemyStats(dungeonLevel);
+
+        vector<Element> elements;
+
+   
+        elements.push_back(
+            static_cast<Element>(randomInt(0, 2))
+        );
+
+       
+        if (randomInt(0, 1) == 1) {
+
+            Element second = static_cast<Element>(randomInt(0, 2));
+
+            while (second == elements[0]) {
+                second = static_cast<Element>(randomInt(0, 2));
+            }
+
+            elements.push_back(second);
+        }
+
+        return make_unique<Slime>(
+            stats.level,
+            stats.treasure,
+            stats.ac,
+            elements
+        );
+    }
+};
+
+class OrcCreator : public EnemyCreator {
+public:
+    unique_ptr<Enemy> createEnemy(int dungeonLevel) const override {
+
+        EnemyStats stats = generateEnemyStats(dungeonLevel);
+
+        int anger = randomInt(0, 3);
+
+        return make_unique<Orc>(
+            stats.level,
+            stats.treasure,
+            stats.ac,
+            anger
+        );
+    }
+};
+
+class DragonCreator : public EnemyCreator {
+public:
+    unique_ptr<Enemy> createEnemy(int dungeonLevel) const override {
+
+        EnemyStats stats = generateEnemyStats(dungeonLevel);
+
+        return make_unique<Dragon>(
+            stats.level,
+            stats.treasure,
+            stats.ac
+        );
+    }
+};
+
+class EnemyFactory {
+private:
+    SlimeCreator slimeCreator;
+    OrcCreator orcCreator;
+    DragonCreator dragonCreator;
+
+    bool dragonCreated = false;
+
+public:
+
+    
+    void reset() {
+        dragonCreated = false;
+    }
+
+    unique_ptr<Enemy> createRandomEnemy(int dungeonLevel) {
+
+        int chance = randomInt(1, 100);
+
+   
+        if (!dragonCreated && chance <= 5) {
+            dragonCreated = true;
+            return dragonCreator.createEnemy(dungeonLevel);
+        }
+
+      
+        if (chance <= 55) {
+            return slimeCreator.createEnemy(dungeonLevel);
+        }
+
+       
+        return orcCreator.createEnemy(dungeonLevel);
+    }
+};
+
+
+
+
 
 void showEnemy(const Enemy& enemy) {
     cout << "[" << enemy.getSymbol() << "] "
@@ -266,7 +379,18 @@ int main() {
     cout << "Elementos: "
         << slime.getElementDescription() << endl;
 
-  
+    cout << "\n=== GENERACION ALEATORIA ===" << endl;
+
+    EnemyFactory factory;
+
+    factory.reset();
+
+    for (int i = 0; i < 15; i++) {
+
+        unique_ptr<Enemy> enemy = factory.createRandomEnemy(1);
+
+        showEnemy(*enemy);
+    }
 
     return 0;
 }
