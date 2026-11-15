@@ -25,7 +25,22 @@ struct EnemyStats {
     int ac;
 };
 
+string elementName(Element element) {
 
+    switch (element) {
+    case Element::Fire:
+        return "Fuego";
+
+    case Element::Ice:
+        return "Hielo";
+
+    case Element::Poison:
+        return "Veneno";
+    }
+
+    return "Desconocido";
+}
+#pragma region dificultad
 
 int randomInt(int minValue, int maxValue) {
     static random_device rd;
@@ -97,8 +112,9 @@ EnemyStats generateEnemyStats(int dungeonLevel) {
     return { level, treasure, ac };
 
 }
+#pragma endregion dificultad
 
-
+#pragma region enemy y enemy creator
 
 
 
@@ -339,7 +355,7 @@ public:
     }
 };
 
-
+#pragma endregion enemy y enemy creator
 
 
 
