@@ -632,9 +632,43 @@ public:
 };
 #pragma endregion weapon y player
 
+void enemyTurn(Room& room, Player& player) {
+
+    cout << "\n=== TURNO DE LOS ENEMIGOS ===" << endl;
+
+    for (const auto& enemy : room.enemies) {
+
+        if (!player.isAlive()) {
+            break;
+        }
+
+        int attacks = enemy->attacksPerTurn();
+
+        for (int i = 0; i < attacks; i++) {
+
+            if (!player.isAlive()) {
+                break;
+            }
+
+            int damage = enemy->rollDamage();
+
+            player.receiveDamage(damage);
+
+            cout << enemy->getName()
+                << " causa " << damage
+                << " de dano." << endl;
+
+            cout << "Tus PS: "
+                << player.getHp() << "/"
+                << player.getMaxHp() << endl;
+        }
+    }
+}
+
 #pragma region ASCII
 
-void drawRoom(const Room& room) {
+void drawRoom(const Room& room) 
+{
 
    
     vector<string> grid(
@@ -718,40 +752,53 @@ bool isConnected(const Room& room, int destination) {
     return false;
 }
 
-void exploreLevel(const Level& level) {
-
-    if (level.rooms.empty()) {
-        cout << "No hay salas disponibles." << endl;
-        return;
-    }
+void exploreLevel(Level& level, Player& player,
+    const Weapon& weapon) {
 
     int currentRoom = 0;
-    int destination;
-
     bool exploring = true;
 
-    while (exploring) {
+    while (exploring && player.isAlive()) {
 
         system("cls");
 
-        cout << "\n========== ROGUE ==========" << endl;
+        Room& room = level.rooms[currentRoom];
 
-        
-        const Room& room = level.rooms[currentRoom];
+        cout << "========== ROGUE ==========" << endl;
+
+        cout << "Nivel: " << player.getLevel()
+            << " | PS: " << player.getHp()
+            << "/" << player.getMaxHp()
+            << " | Bono ataque: +" << player.getHitBonus()
+            << " | Oro: " << player.getGold() << endl;
+
+        cout << "Arma: " << weapon.getName() << endl;
 
         drawRoom(room);
+
         showConnections(room);
 
-        cout << "\n1. Moverse a otra sala" << endl;
-        cout << "0. Salir de la exploracion" << endl;
+        cout << "\nOro disponible: "
+            << room.gold << endl;
+
+        cout << "\nEnemigos:" << endl;
+
+        for (size_t i = 0; i < room.enemies.size(); i++) {
+
+            cout << i + 1 << ". ";
+            showEnemy(*room.enemies[i]);
+        }
+
+        cout << "\n1. Atacar" << endl;
+        cout << "2. Moverse a otra sala" << endl;
+        cout << "3. Recoger oro" << endl;
+        cout << "0. Salir" << endl;
 
         int option;
 
-        cout << "Opcion: ";
+        cout << "\nOpcion: ";
 
         if (!(cin >> option)) {
-
-            cout << "Entrada no valida." << endl;
 
             cin.clear();
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
@@ -763,13 +810,19 @@ void exploreLevel(const Level& level) {
             exploring = false;
         }
 
+        // ATACAR
         else if (option == 1) {
 
-            cout << "Introduce el numero de la sala destino: ";
+            if (room.enemies.empty()) {
+                cout << "No hay enemigos en esta sala." << endl;
+                continue;
+            }
 
-            if (!(cin >> destination)) {
+            int target;
 
-                cout << "Entrada no valida." << endl;
+            cout << "Numero del enemigo al que atacar: ";
+
+            if (!(cin >> target)) {
 
                 cin.clear();
                 cin.ignore(numeric_limits<streamsize>::max(), '\n');
@@ -777,25 +830,118 @@ void exploreLevel(const Level& level) {
                 continue;
             }
 
-           
+            if (target < 1 ||
+                target > static_cast<int>(room.enemies.size())) {
+
+                cout << "Objetivo no valido." << endl;
+                continue;
+            }
+
+            Enemy& enemy = *room.enemies[target - 1];
+
+            player.attack(enemy, weapon);
+
+            // Comprobamos si ha muerto
+            if (enemy.getHp() <= 0) {
+
+                cout << "\nHas derrotado a "
+                    << enemy.getName() << "!" << endl;
+
+                // Probabilidad de obtener tesoro
+                if (randomInt(1, 100) <= enemy.getTreasure()) {
+
+                    int goldFound =
+                        randomInt(5, 20) * enemy.getLevel();
+
+                    room.gold += goldFound;
+
+                    cout << "El enemigo deja "
+                        << goldFound << " monedas." << endl;
+                }
+
+                else {
+                    cout << "El enemigo no llevaba tesoro." << endl;
+                }
+
+                room.enemies.erase(
+                    room.enemies.begin() + (target - 1)
+                );
+
+                if (player.registerKill()) {
+
+                    cout << "\n*** HAS SUBIDO DE NIVEL ***" << endl;
+                    cout << "+10 PS maximos y +1 al ataque." << endl;
+                }
+            }
+
+            // Los enemigos restantes responden
+            if (!room.enemies.empty() && player.isAlive()) {
+                enemyTurn(room, player);
+            }
+        }
+
+        // MOVERSE
+        else if (option == 2) {
+
+            int destination;
+
+            cout << "Sala de destino: ";
+
+            if (!(cin >> destination)) {
+
+                cin.clear();
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+                continue;
+            }
+
             if (destination >= 0 &&
                 destination < static_cast<int>(level.rooms.size()) &&
                 isConnected(room, destination)) {
 
                 currentRoom = destination;
 
-                cout << "Te desplazas a la sala "
+                cout << "Has llegado a la sala "
                     << currentRoom << endl;
             }
 
             else {
-                cout << "No puedes acceder a esa sala." << endl;
+                cout << "Esa sala no esta conectada." << endl;
+            }
+        }
+
+        // RECOGER ORO
+        else if (option == 3) {
+
+            if (room.gold > 0) {
+
+                player.addGold(room.gold);
+
+                cout << "Has recogido "
+                    << room.gold << " monedas." << endl;
+
+                room.gold = 0;
+            }
+
+            else {
+                cout << "No hay oro disponible." << endl;
             }
         }
 
         else {
             cout << "Opcion no valida." << endl;
         }
+
+        if (player.isAlive() && exploring) {
+
+            cout << "\nPulsa Enter para continuar...";
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            cin.get();
+        }
+    }
+
+    if (!player.isAlive()) {
+        cout << "\nHas sido derrotado en la mazmorra." << endl;
     }
 }
 
@@ -919,7 +1065,7 @@ int main() {
 
     cout << "\n=== EXPLORACION DE LA MAZMORRA ===" << endl;
 
-    exploreLevel(dungeon);
+    exploreLevel(dungeon, player, sword);
 
     return 0;
 }
