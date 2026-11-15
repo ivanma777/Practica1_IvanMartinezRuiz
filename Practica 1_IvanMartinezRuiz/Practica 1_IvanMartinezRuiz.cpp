@@ -91,7 +91,7 @@ EnemyStats generateEnemyStats(int dungeonLevel) {
         level = 1;
     }
 
-    int treasure = randomInt(10, 60);
+    int treasure = randomInt(5 * level, 15 * level);
     int ac = 8 + level + randomInt(0, 3);
 
     return { level, treasure, ac };
