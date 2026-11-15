@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <cstdlib>
 
 using namespace std;
 
@@ -113,11 +114,6 @@ EnemyStats generateEnemyStats(int dungeonLevel) {
 
 }
 #pragma endregion dificultad
-
-#pragma region builder
-
-
-#pragma endregion builder
 
 #pragma region enemy y enemy creator
 
@@ -362,6 +358,8 @@ public:
 
 #pragma endregion enemy y enemy creator (Factory)
 
+#pragma region builder
+
 struct Room {
     int id = 0;
     int width = 10;
@@ -462,6 +460,8 @@ public:
         return std::move(level);
     }
 };
+#pragma endregion builder
+
 #pragma region weapon y player
 
 class Weapon {
@@ -594,7 +594,175 @@ public:
 };
 #pragma endregion weapon y player
 
+#pragma region ASCII
 
+void drawRoom(const Room& room) {
+
+   
+    vector<string> grid(
+        room.height,
+        string(room.width, ' ')
+    );
+
+    
+    for (int x = 0; x < room.width; x++) {
+        grid[0][x] = '#';
+        grid[room.height - 1][x] = '#';
+    }
+
+    
+    for (int y = 0; y < room.height; y++) {
+        grid[y][0] = '#';
+        grid[y][room.width - 1] = '#';
+    }
+
+    
+    int perWall = room.width - 2;
+
+    for (size_t i = 0; i < room.connections.size(); i++) {
+
+        int row = (i < perWall) ? 0 : room.height - 1;
+
+        int column = 1 + (i % perWall);
+
+        grid[row][column] =
+            static_cast<char>('0' + room.connections[i]);
+    }
+
+    
+    for (size_t i = 0; i < room.enemies.size(); i++) {
+
+        int x = 2 + static_cast<int>(i) * 2;
+
+        grid[1][x] = room.enemies[i]->getSymbol();
+    }
+
+    
+    if (room.gold > 0) {
+        grid[room.height - 2][room.width - 3] = '$';
+    }
+
+    
+    grid[room.height / 2][room.width / 2] = '@';
+
+    
+    cout << "\nSala " << room.id << " ("
+        << room.width << "x" << room.height << ")" << endl;
+
+    for (const string& line : grid) {
+        cout << line << endl;
+    }
+
+    cout << "@ Jugador | S Slime | O Orco | D Dragon"
+        << " | $ Oro | 0-7 Puertas" << endl;
+}
+
+void showConnections(const Room& room) {
+
+    cout << "\nSalas conectadas: ";
+
+    for (int connection : room.connections) {
+        cout << connection << " ";
+    }
+
+    cout << endl;
+}
+
+bool isConnected(const Room& room, int destination) {
+
+    for (int connection : room.connections) {
+
+        if (connection == destination) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void exploreLevel(const Level& level) {
+
+    if (level.rooms.empty()) {
+        cout << "No hay salas disponibles." << endl;
+        return;
+    }
+
+    int currentRoom = 0;
+    int destination;
+
+    bool exploring = true;
+
+    while (exploring) {
+
+
+        cout << "\n========== ROGUE ==========" << endl;
+
+        
+        const Room& room = level.rooms[currentRoom];
+
+        drawRoom(room);
+        showConnections(room);
+
+        cout << "\n1. Moverse a otra sala" << endl;
+        cout << "0. Salir de la exploracion" << endl;
+
+        int option;
+
+        cout << "Opcion: ";
+
+        if (!(cin >> option)) {
+
+            cout << "Entrada no valida." << endl;
+
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+            continue;
+        }
+
+        if (option == 0) {
+            exploring = false;
+        }
+
+        else if (option == 1) {
+
+            cout << "Introduce el numero de la sala destino: ";
+
+            if (!(cin >> destination)) {
+
+                cout << "Entrada no valida." << endl;
+
+                cin.clear();
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+                continue;
+            }
+
+           
+            if (destination >= 0 &&
+                destination < static_cast<int>(level.rooms.size()) &&
+                isConnected(room, destination)) {
+
+                currentRoom = destination;
+
+                cout << "Te desplazas a la sala "
+                    << currentRoom << endl;
+            }
+
+            else {
+                cout << "No puedes acceder a esa sala." << endl;
+            }
+        }
+
+        else {
+            cout << "Opcion no valida." << endl;
+        }
+    }
+}
+
+
+
+#pragma endregion ASCII
 
 void showEnemy(const Enemy& enemy) {
     cout << "[" << enemy.getSymbol() << "] "
@@ -709,6 +877,10 @@ int main() {
             showEnemy(*enemy);
         }
     }
+
+    cout << "\n=== EXPLORACION DE LA MAZMORRA ===" << endl;
+
+    exploreLevel(dungeon);
 
     return 0;
 }
